@@ -22,22 +22,22 @@ function Navigation() {
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/">
-              <a className={`px-4 py-2 text-sm font-medium transition-colors ${
+              <span className={`px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                 location === '/' 
                   ? 'text-primary border-b-2 border-primary' 
                   : 'text-muted-foreground hover:text-primary'
               }`}>
                 Register Jobseeker
-              </a>
+              </span>
             </Link>
             <Link href="/dashboard">
-              <a className={`px-4 py-2 text-sm font-medium transition-colors ${
+              <span className={`px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                 location === '/dashboard' 
                   ? 'text-primary border-b-2 border-primary' 
                   : 'text-muted-foreground hover:text-primary'
               }`}>
                 View Profiles
-              </a>
+              </span>
             </Link>
           </div>
         </div>

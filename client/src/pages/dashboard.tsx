@@ -14,9 +14,9 @@ import { skillOptions, experienceOptions, getSkillLabel, getExperienceLabel } fr
 export default function Dashboard() {
   const [selectedJobseeker, setSelectedJobseeker] = useState<Jobseeker | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [skillFilter, setSkillFilter] = useState("");
-  const [experienceFilter, setExperienceFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
+  const [skillFilter, setSkillFilter] = useState("all");
+  const [experienceFilter, setExperienceFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
 
   const { data: jobseekers = [], isLoading } = useQuery<Jobseeker[]>({
     queryKey: ['/api/jobseekers'],
@@ -29,9 +29,9 @@ export default function Dashboard() {
         jobseeker.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         jobseeker.email.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesSkill = !skillFilter || jobseeker.skill === skillFilter;
-      const matchesExperience = !experienceFilter || jobseeker.experience === experienceFilter;
-      const matchesLocation = !locationFilter || 
+      const matchesSkill = skillFilter === "all" || jobseeker.skill === skillFilter;
+      const matchesExperience = experienceFilter === "all" || jobseeker.experience === experienceFilter;
+      const matchesLocation = locationFilter === "all" || 
         jobseeker.location.toLowerCase().includes(locationFilter.toLowerCase());
 
       return matchesSearch && matchesSkill && matchesExperience && matchesLocation;
@@ -108,7 +108,7 @@ export default function Dashboard() {
                     <SelectValue placeholder="All Skills" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Skills</SelectItem>
+                    <SelectItem value="all">All Skills</SelectItem>
                     {skillOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -122,7 +122,7 @@ export default function Dashboard() {
                     <SelectValue placeholder="All Experience" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Experience</SelectItem>
+                    <SelectItem value="all">All Experience</SelectItem>
                     {experienceOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -136,7 +136,7 @@ export default function Dashboard() {
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Locations</SelectItem>
+                    <SelectItem value="all">All Locations</SelectItem>
                     {uniqueLocations.map((location) => (
                       <SelectItem key={location} value={location}>
                         {location}
