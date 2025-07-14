@@ -1,4 +1,6 @@
 import { users, jobseekers, type User, type InsertUser, type Jobseeker, type InsertJobseeker } from "@shared/schema";
+import { db } from "./db";
+import { eq, like, and, or, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -122,4 +124,98 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async createJobseeker(insertJobseeker: InsertJobseeker): Promise<Jobseeker> {
+    const jobseekerData = {
+      ...insertJobseeker,
+      resumeFileName: insertJobseeker.resumeFileName || "",
+      resumeFilePath: insertJobseeker.resumeFilePath || "",
+    };
+    
+    const [jobseeker] = await db
+      .insert(jobseekers)
+      .values(jobseekerData)
+      .returning();
+    return jobseeker;
+  }
+
+  async getAllJobseekers(): Promise<Jobseeker[]> {
+    return await db.select().from(jobseekers).orderBy(desc(jobseekers.createdAt));
+  }
+
+  async getJobseekerById(id: number): Promise<Jobseeker | undefined> {
+    const [jobseeker] = await db.select().from(jobseekers).where(eq(jobseekers.id, id));
+    return jobseeker || undefined;
+  }
+
+  async searchJobseekers(filters: {
+    search?: string;
+    skill?: string;
+    experience?: string;
+    location?: string;
+  }): Promise<Jobseeker[]> {
+    let query = db.select().from(jobseekers);
+    const conditions = [];
+
+    if (filters.search) {
+      conditions.push(
+        or(
+          like(jobseekers.fullName, `%${filters.search}%`),
+          like(jobseekers.email, `%${filters.search}%`)
+        )
+      );
+    }
+
+    if (filters.skill && filters.skill !== "all") {
+      conditions.push(eq(jobseekers.skill, filters.skill));
+    }
+
+    if (filters.experience && filters.experience !== "all") {
+      conditions.push(eq(jobseekers.experience, filters.experience));
+    }
+
+    if (filters.location && filters.location !== "all") {
+      conditions.push(like(jobseekers.location, `%${filters.location}%`));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    return await query.orderBy(desc(jobseekers.createdAt));
+  }
+
+  async updateJobseeker(id: number, updates: Partial<Jobseeker>): Promise<Jobseeker | undefined> {
+    const [jobseeker] = await db
+      .update(jobseekers)
+      .set(updates)
+      .where(eq(jobseekers.id, id))
+      .returning();
+    return jobseeker || undefined;
+  }
+
+  async deleteJobseeker(id: number): Promise<boolean> {
+    const result = await db.delete(jobseekers).where(eq(jobseekers.id, id));
+    return result.changes > 0;
+  }
+}
+
+export const storage = new DatabaseStorage();

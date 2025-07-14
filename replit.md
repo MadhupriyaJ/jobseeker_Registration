@@ -23,9 +23,10 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js server
 - **Language**: TypeScript with ES modules
 - **Database ORM**: Drizzle ORM for type-safe database operations
-- **Database**: PostgreSQL (configured for Neon serverless)
+- **Database**: PostgreSQL (configured for Neon serverless) - **ACTIVE**
 - **File Uploads**: Multer for handling PDF resume uploads
 - **Session Management**: Connect-pg-simple for PostgreSQL session storage
+- **Database Connection**: Neon serverless PostgreSQL with connection pooling
 
 ### Project Structure
 ```
@@ -39,6 +40,7 @@ Preferred communication style: Simple, everyday language.
 │   ├── index.ts      # Main server file
 │   ├── routes.ts     # API route definitions
 │   ├── storage.ts    # Database layer abstraction
+│   ├── db.ts         # Database connection and configuration
 │   └── vite.ts       # Vite development server integration
 ├── shared/           # Shared code between frontend and backend
 │   └── schema.ts     # Database schema and validation
@@ -51,6 +53,8 @@ Preferred communication style: Simple, everyday language.
 - **jobseekers**: Main entity storing personal information, skills, experience, and resume details
 - **users**: User authentication (minimal implementation)
 - Validation using Zod schemas with Drizzle integration
+- **Database**: PostgreSQL with auto-incrementing IDs and timestamp fields
+- **Connection**: Neon serverless PostgreSQL with WebSocket support
 
 ### API Endpoints
 - `GET /api/jobseekers` - Retrieve all jobseekers with optional filtering
@@ -85,8 +89,8 @@ Preferred communication style: Simple, everyday language.
    - Resume download functionality
 
 3. **Storage Layer**:
-   - Abstract storage interface with in-memory implementation
-   - Easy to swap for database implementation
+   - Abstract storage interface with PostgreSQL database implementation
+   - Real database persistence using Drizzle ORM
    - Type-safe operations using Drizzle ORM schemas
 
 ## External Dependencies
@@ -128,9 +132,10 @@ Preferred communication style: Simple, everyday language.
 - File storage requires persistent volume or cloud storage solution
 
 ### Environment Configuration
-- `DATABASE_URL`: PostgreSQL connection string (required)
+- `DATABASE_URL`: PostgreSQL connection string (required) - **CONFIGURED**
 - `NODE_ENV`: Environment mode (development/production)
 - File upload directory configuration
 - Session secret and database credentials
+- Database connection automatically initialized on server startup
 
 The application follows a modern full-stack architecture with clear separation of concerns, type safety throughout, and a focus on developer experience and user interface quality.
