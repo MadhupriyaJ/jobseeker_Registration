@@ -23,10 +23,10 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js server
 - **Language**: TypeScript with ES modules
 - **Database ORM**: Drizzle ORM for type-safe database operations
-- **Database**: PostgreSQL (configured for Neon serverless) - **ACTIVE**
+- **Database**: Hybrid setup - SQL Server (primary) with SQLite fallback - **ACTIVE**
 - **File Uploads**: Multer for handling PDF resume uploads
 - **Session Management**: Connect-pg-simple for PostgreSQL session storage
-- **Database Connection**: Neon serverless PostgreSQL with connection pooling
+- **Database Connection**: SQL Server with mssql package, SQLite with better-sqlite3 fallback
 
 ### Project Structure
 ```
@@ -53,8 +53,9 @@ Preferred communication style: Simple, everyday language.
 - **jobseekers**: Main entity storing personal information, skills, experience, and resume details
 - **users**: User authentication (minimal implementation)
 - Validation using Zod schemas with Drizzle integration
-- **Database**: PostgreSQL with auto-incrementing IDs and timestamp fields
-- **Connection**: Neon serverless PostgreSQL with WebSocket support
+- **Database**: Hybrid setup with SQL Server (primary) and SQLite (fallback)
+- **Connection**: SQL Server with mssql package, automatic fallback to SQLite
+- **Tables**: users and jobseekers with auto-incrementing IDs and timestamp fields
 
 ### API Endpoints
 - `GET /api/jobseekers` - Retrieve all jobseekers with optional filtering
@@ -132,10 +133,11 @@ Preferred communication style: Simple, everyday language.
 - File storage requires persistent volume or cloud storage solution
 
 ### Environment Configuration
-- `DATABASE_URL`: PostgreSQL connection string (required) - **CONFIGURED**
+- `SQL_SERVER_*`: SQL Server connection credentials - **CONFIGURED**
 - `NODE_ENV`: Environment mode (development/production)
 - File upload directory configuration
 - Session secret and database credentials
 - Database connection automatically initialized on server startup
+- Automatic fallback to SQLite when SQL Server is unreachable
 
 The application follows a modern full-stack architecture with clear separation of concerns, type safety throughout, and a focus on developer experience and user interface quality.

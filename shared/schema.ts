@@ -1,9 +1,9 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const jobseekers = pgTable("jobseekers", {
-  id: serial("id").primaryKey(),
+export const jobseekers = sqliteTable("jobseekers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   fullName: text("full_name").notNull(),
   contactNumber: text("contact_number").notNull(),
   email: text("email").notNull(),
@@ -15,7 +15,7 @@ export const jobseekers = pgTable("jobseekers", {
   resumeFileName: text("resume_file_name").notNull(),
   resumeFilePath: text("resume_file_path").notNull(),
   status: text("status").notNull().default("active"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: text("created_at").notNull(),
 });
 
 export const insertJobseekerSchema = createInsertSchema(jobseekers).omit({
@@ -39,8 +39,8 @@ export type InsertJobseeker = z.infer<typeof insertJobseekerSchema>;
 export type Jobseeker = typeof jobseekers.$inferSelect;
 
 // Keep existing users table
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });

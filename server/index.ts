@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
+import { initStorage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -40,6 +41,9 @@ app.use((req, res, next) => {
 (async () => {
   // Initialize database connection
   await initializeDatabase();
+  
+  // Initialize storage (will try SQL Server first, then SQLite)
+  await initStorage();
   
   const server = await registerRoutes(app);
 

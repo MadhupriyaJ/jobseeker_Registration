@@ -1,6 +1,7 @@
 import { users, jobseekers, type User, type InsertUser, type Jobseeker, type InsertJobseeker } from "@shared/schema";
-import { db } from "./db";
-import { eq, like, and, or, desc } from "drizzle-orm";
+import { db, getSqlServerConnection } from "./db";
+import { eq, like, and, or } from "drizzle-orm";
+import { SqlServerStorage } from "./sql-server-storage";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -146,6 +147,7 @@ export class DatabaseStorage implements IStorage {
   async createJobseeker(insertJobseeker: InsertJobseeker): Promise<Jobseeker> {
     const jobseekerData = {
       ...insertJobseeker,
+      createdAt: new Date().toISOString(),
       resumeFileName: insertJobseeker.resumeFileName || "",
       resumeFilePath: insertJobseeker.resumeFilePath || "",
     };
@@ -158,7 +160,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllJobseekers(): Promise<Jobseeker[]> {
-    return await db.select().from(jobseekers).orderBy(desc(jobseekers.createdAt));
+    return await db.select().from(jobseekers).orderBy(jobseekers.createdAt);
   }
 
   async getJobseekerById(id: number): Promise<Jobseeker | undefined> {
@@ -200,7 +202,7 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions));
     }
 
-    return await query.orderBy(desc(jobseekers.createdAt));
+    return await query.orderBy(jobseekers.createdAt);
   }
 
   async updateJobseeker(id: number, updates: Partial<Jobseeker>): Promise<Jobseeker | undefined> {
@@ -218,4 +220,34 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Try to use SQL Server storage if available, otherwise fall back to SQLite
+const createStorage = async (): Promise<IStorage> => {
+  try {
+    const sqlServerStorage = new SqlServerStorage();
+    await sqlServerStorage.connect();
+    console.log('Using SQL Server storage');
+    return sqlServerStorage;
+  } catch (error) {
+    console.log('SQL Server unavailable, using SQLite storage');
+    return new DatabaseStorage();
+  }
+};
+
+// Initialize storage
+let storageInstance: IStorage;
+export const initStorage = async (): Promise<void> => {
+  storageInstance = await createStorage();
+};
+
+export const storage = new Proxy({} as IStorage, {
+  get(target, prop) {
+    if (!storageInstance) {
+      throw new Error('Storage not initialized. Call initStorage() first.');
+    }
+    const value = storageInstance[prop as keyof IStorage];
+    if (typeof value === 'function') {
+      return value.bind(storageInstance);
+    }
+    return value;
+  }
+});
