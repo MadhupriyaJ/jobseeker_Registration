@@ -7,15 +7,15 @@ export class SqlServerStorage implements IStorage {
   
   constructor() {
     const config = {
-      user: process.env.SQL_SERVER_USER || 'priyaJ',
-      password: process.env.SQL_SERVER_PASSWORD || '1234',
-      server: process.env.SQL_SERVER_HOST || 'DESKTOP-GCSP28Q',
-      database: process.env.SQL_SERVER_DATABASE || 'userInsightsDB',
-      port: parseInt(process.env.SQL_SERVER_PORT || '1433', 10),
+      user: 'priyaJ',
+      password: '1234',
+      server: 'MadhupriyajWS',
+      database: 'userInsightsDB',
+      port: 1433,
       options: {
         trustServerCertificate: true,
         enableArithAbort: true,
-        instanceName: process.env.SQL_SERVER_INSTANCE || 'SQLEXPRESS'
+        instanceName: 'SQLEXPRESS'
       }
     };
     
