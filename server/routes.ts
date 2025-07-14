@@ -50,7 +50,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(jobseekers);
     } catch (error) {
-      console.error('Error fetching jobseekers:', error);
       res.status(500).json({ message: "Failed to fetch jobseekers" });
     }
   });
@@ -67,7 +66,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(jobseeker);
     } catch (error) {
-      console.error('Error fetching jobseeker:', error);
       res.status(500).json({ message: "Failed to fetch jobseeker" });
     }
   });

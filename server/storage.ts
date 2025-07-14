@@ -233,22 +233,17 @@ const createStorage = async (): Promise<IStorage> => {
   }
 };
 
-// Initialize storage with immediate fallback
-let storageInstance: IStorage = new DatabaseStorage(); // Default to SQLite immediately
-
+// Initialize storage
+let storageInstance: IStorage;
 export const initStorage = async (): Promise<void> => {
-  try {
-    storageInstance = await createStorage();
-    console.log('Storage initialization completed successfully');
-  } catch (error) {
-    console.error('Storage initialization failed:', error);
-    console.log('Using default SQLite storage');
-    storageInstance = new DatabaseStorage();
-  }
+  storageInstance = await createStorage();
 };
 
 export const storage = new Proxy({} as IStorage, {
   get(target, prop) {
+    if (!storageInstance) {
+      throw new Error('Storage not initialized. Call initStorage() first.');
+    }
     const value = storageInstance[prop as keyof IStorage];
     if (typeof value === 'function') {
       return value.bind(storageInstance);

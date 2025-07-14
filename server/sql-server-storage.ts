@@ -9,7 +9,7 @@ export class SqlServerStorage implements IStorage {
     const config = {
       user: process.env.SQL_SERVER_USER || 'priyaJ',
       password: process.env.SQL_SERVER_PASSWORD || '1234',
-      server: process.env.SQL_SERVER_HOST || 'MadhupriyajWS',
+      server: process.env.SQL_SERVER_HOST || 'DESKTOP-GCSP28Q',
       database: process.env.SQL_SERVER_DATABASE || 'userInsightsDB',
       port: parseInt(process.env.SQL_SERVER_PORT || '1433', 10),
       options: {
