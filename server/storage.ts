@@ -1,14 +1,30 @@
+// storage.ts
 import { users, jobseekers, type User, type InsertUser, type Jobseeker, type InsertJobseeker } from "@shared/schema";
 import { db, getSqlServerConnection } from "./db";
 import { eq, like, and, or } from "drizzle-orm";
-import { SqlServerStorage } from "./sql-server-storage";
+import sql from "mssql";
+
+
+
+
+const config = {
+  user: "priyaJ",         // 🔁 MSSQL username
+  password: "1234",     // 🔁 MSSQL password
+  server: "MadhupriyajWS",           // or your MSSQL IP/hostname
+  database: "userInsightsDB",    // 🔁 your database name
+  options: {
+    encrypt: false,
+    trustServerCertificate: true,
+  },
+};
+
+export const pool = new sql.ConnectionPool(config);
+export const poolConnect = pool.connect();
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
-  // Jobseeker methods
   createJobseeker(jobseeker: InsertJobseeker): Promise<Jobseeker>;
   getAllJobseekers(): Promise<Jobseeker[]>;
   getJobseekerById(id: number): Promise<Jobseeker | undefined>;
@@ -22,107 +38,111 @@ export interface IStorage {
   deleteJobseeker(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private jobseekers: Map<number, Jobseeker>;
-  private currentUserId: number;
-  private currentJobseekerId: number;
+export class SqlServerStorage implements IStorage {
+  private isInitialized = false;
 
-  constructor() {
-    this.users = new Map();
-    this.jobseekers = new Map();
-    this.currentUserId = 1;
-    this.currentJobseekerId = 1;
+  async connect() {
+    await this.ensureInitialized();
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  private async ensureInitialized() {
+    if (this.isInitialized) return;
+
+    const pool = getSqlServerConnection();
+    if (!pool) throw new Error("SQL Server connection is not available");
+
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='jobseekers' AND xtype='U')
+      CREATE TABLE jobseekers (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        full_name NVARCHAR(255) NOT NULL,
+        contact_number NVARCHAR(50) NOT NULL,
+        email NVARCHAR(255) NOT NULL,
+        gender NVARCHAR(20) NOT NULL,
+        age INT NOT NULL,
+        skill NVARCHAR(100) NOT NULL,
+        experience NVARCHAR(100) NOT NULL,
+        location NVARCHAR(255) NOT NULL,
+        resume_file_name NVARCHAR(255) NOT NULL,
+        resume_file_path NVARCHAR(500) NOT NULL,
+        status NVARCHAR(50) NOT NULL DEFAULT 'active',
+        created_at NVARCHAR(50) NOT NULL
+      );
+    `);
+
+    this.isInitialized = true;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
+  async createJobseeker(data: InsertJobseeker): Promise<Jobseeker> {
+    await this.ensureInitialized();
+    const pool = getSqlServerConnection();
+    const result = await pool.request()
+      .input("full_name", sql.NVarChar, data.fullName)
+      .input("contact_number", sql.NVarChar, data.contactNumber)
+      .input("email", sql.NVarChar, data.email)
+      .input("gender", sql.NVarChar, data.gender)
+      .input("age", sql.Int, data.age)
+      .input("skill", sql.NVarChar, data.skill)
+      .input("experience", sql.NVarChar, data.experience)
+      .input("location", sql.NVarChar, data.location)
+      .input("resume_file_name", sql.NVarChar, data.resumeFileName || "")
+      .input("resume_file_path", sql.NVarChar, data.resumeFilePath || "")
+      .input("status", sql.NVarChar, data.status || "active")
+      .input("created_at", sql.NVarChar, data.createdAt || new Date().toISOString())
+      .query(`
+        INSERT INTO jobseekers (
+          full_name, contact_number, email, gender, age, skill, experience,
+          location, resume_file_name, resume_file_path, status, created_at
+        )
+        OUTPUT INSERTED.*
+        VALUES (@full_name, @contact_number, @email, @gender, @age, @skill,
+                @experience, @location, @resume_file_name, @resume_file_path,
+                @status, @created_at)
+      `);
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  async createJobseeker(insertJobseeker: InsertJobseeker): Promise<Jobseeker> {
-    const id = this.currentJobseekerId++;
-    const jobseeker: Jobseeker = {
-      ...insertJobseeker,
-      id,
-      createdAt: new Date(),
-      status: insertJobseeker.status || "active",
-      resumeFileName: insertJobseeker.resumeFileName || "",
-      resumeFilePath: insertJobseeker.resumeFilePath || "",
+    return {
+      id: result.recordset[0].id,
+      ...data,
     };
-    this.jobseekers.set(id, jobseeker);
-    return jobseeker;
   }
 
-  async getAllJobseekers(): Promise<Jobseeker[]> {
-    return Array.from(this.jobseekers.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }
-
+  // The rest of the IStorage methods can return mock/empty or be implemented as needed.
+  async getUser(): Promise<User | undefined> { return undefined; }
+  async getUserByUsername(): Promise<User | undefined> { return undefined; }
+  async createUser(): Promise<User> { return { id: 0, username: '', password: '' }; }
+  async getAllJobseekers(): Promise<Jobseeker[]> { return []; }
+  // async getJobseekerById(): Promise<Jobseeker | undefined> { return undefined; }
   async getJobseekerById(id: number): Promise<Jobseeker | undefined> {
-    return this.jobseekers.get(id);
-  }
+  await this.ensureInitialized();
+  const pool = getSqlServerConnection();
 
-  async searchJobseekers(filters: {
-    search?: string;
-    skill?: string;
-    experience?: string;
-    location?: string;
-  }): Promise<Jobseeker[]> {
-    let results = Array.from(this.jobseekers.values());
+  const result = await pool.request()
+    .input("id", sql.Int, id)
+    .query("SELECT * FROM jobseekers WHERE id = @id");
 
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      results = results.filter(jobseeker => 
-        jobseeker.fullName.toLowerCase().includes(searchTerm) ||
-        jobseeker.email.toLowerCase().includes(searchTerm)
-      );
-    }
+  if (result.recordset.length === 0) return undefined;
 
-    if (filters.skill) {
-      results = results.filter(jobseeker => jobseeker.skill === filters.skill);
-    }
+  const row = result.recordset[0];
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    contactNumber: row.contact_number,
+    email: row.email,
+    gender: row.gender,
+    age: row.age,
+    skill: row.skill,
+    experience: row.experience,
+    location: row.location,
+    resumeFileName: row.resume_file_name,
+    resumeFilePath: row.resume_file_path,
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
 
-    if (filters.experience) {
-      results = results.filter(jobseeker => jobseeker.experience === filters.experience);
-    }
-
-    if (filters.location) {
-      results = results.filter(jobseeker => 
-        jobseeker.location.toLowerCase().includes(filters.location!.toLowerCase())
-      );
-    }
-
-    return results.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }
-
-  async updateJobseeker(id: number, updates: Partial<Jobseeker>): Promise<Jobseeker | undefined> {
-    const jobseeker = this.jobseekers.get(id);
-    if (!jobseeker) return undefined;
-
-    const updatedJobseeker = { ...jobseeker, ...updates };
-    this.jobseekers.set(id, updatedJobseeker);
-    return updatedJobseeker;
-  }
-
-  async deleteJobseeker(id: number): Promise<boolean> {
-    return this.jobseekers.delete(id);
-  }
+  async searchJobseekers(): Promise<Jobseeker[]> { return []; }
+  async updateJobseeker(): Promise<Jobseeker | undefined> { return undefined; }
+  async deleteJobseeker(): Promise<boolean> { return false; }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -151,7 +171,7 @@ export class DatabaseStorage implements IStorage {
       resumeFileName: insertJobseeker.resumeFileName || "",
       resumeFilePath: insertJobseeker.resumeFilePath || "",
     };
-    
+
     const [jobseeker] = await db
       .insert(jobseekers)
       .values(jobseekerData)
@@ -168,6 +188,7 @@ export class DatabaseStorage implements IStorage {
     return jobseeker || undefined;
   }
 
+  
   async searchJobseekers(filters: {
     search?: string;
     skill?: string;
@@ -220,7 +241,6 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Try to use SQL Server storage if available, otherwise fall back to SQLite
 const createStorage = async (): Promise<IStorage> => {
   try {
     const sqlServerStorage = new SqlServerStorage();
@@ -233,7 +253,6 @@ const createStorage = async (): Promise<IStorage> => {
   }
 };
 
-// Initialize storage
 let storageInstance: IStorage;
 export const initStorage = async (): Promise<void> => {
   storageInstance = await createStorage();

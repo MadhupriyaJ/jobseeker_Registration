@@ -54,7 +54,7 @@ export default function Registration() {
         formData.append('resume', resumeFile);
       }
 
-      const response = await fetch('/api/jobseekers', {
+      const response = await fetch("http://localhost:5000/api/jobseekers", {
         method: 'POST',
         body: formData,
       });
@@ -71,7 +71,7 @@ export default function Registration() {
         title: "Success!",
         description: "Profile registered successfully!",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobseekers'] });
+      queryClient.invalidateQueries({ queryKey: [''] });
       form.reset();
       setResumeFile(null);
     },

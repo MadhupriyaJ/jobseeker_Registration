@@ -4,7 +4,7 @@ import sql from 'mssql';
 const config = {
   user: 'priyaJ',
   password: '1234',
-  server: 'YOUR_PUBLIC_IP', // Replace with your public IP
+  server: 'MadhupriyajWS',
   database: 'userInsightsDB',
   options: {
     trustServerCertificate: true,

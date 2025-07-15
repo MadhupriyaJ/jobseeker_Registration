@@ -2,57 +2,94 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ProfileDetailModal } from "@/components/profile-detail-modal";
 import { Search, Eye, Download, Users, ArrowUpDown } from "lucide-react";
 import { Jobseeker } from "@shared/schema";
-import { skillOptions, experienceOptions, getSkillLabel, getExperienceLabel } from "@/lib/types";
+import {
+  skillOptions,
+  experienceOptions,
+  getSkillLabel,
+  getExperienceLabel,
+} from "@/lib/types";
 
 export default function Dashboard() {
-  const [selectedJobseeker, setSelectedJobseeker] = useState<Jobseeker | null>(null);
+  const [selectedJobseeker, setSelectedJobseeker] = useState<Jobseeker | null>(
+    null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [skillFilter, setSkillFilter] = useState("all");
   const [experienceFilter, setExperienceFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
 
   const { data: jobseekers = [], isLoading } = useQuery<Jobseeker[]>({
-    queryKey: ['/api/jobseekers'],
+    queryKey: ["/api/jobseekers"],
+    queryFn: async () => {
+      const res = await fetch("http://localhost:5050/jobseekers");
+      if (!res.ok) throw new Error("Failed to fetch jobseekers");
+      return res.json();
+    },
     refetchInterval: 30000, // Refetch every 30 seconds
   });
-
+  console.log("jobseeker",jobseekers)
   const filteredJobseekers = useMemo(() => {
-    return jobseekers.filter(jobseeker => {
-      const matchesSearch = !searchTerm || 
+    return jobseekers.filter((jobseeker) => {
+      const matchesSearch =
+        !searchTerm ||
         jobseeker.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         jobseeker.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesSkill = skillFilter === "all" || jobseeker.skill === skillFilter;
-      const matchesExperience = experienceFilter === "all" || jobseeker.experience === experienceFilter;
-      const matchesLocation = locationFilter === "all" || 
+
+      const matchesSkill =
+        skillFilter === "all" || jobseeker.skill === skillFilter;
+      const matchesExperience =
+        experienceFilter === "all" || jobseeker.experience === experienceFilter;
+      const matchesLocation =
+        locationFilter === "all" ||
         jobseeker.location.toLowerCase().includes(locationFilter.toLowerCase());
 
-      return matchesSearch && matchesSkill && matchesExperience && matchesLocation;
+      return (
+        matchesSearch && matchesSkill && matchesExperience && matchesLocation
+      );
     });
   }, [jobseekers, searchTerm, skillFilter, experienceFilter, locationFilter]);
 
   const handleDownloadResume = (jobseeker: Jobseeker) => {
-    const link = document.createElement('a');
-    link.href = `/api/jobseekers/${jobseeker.id}/resume`;
+    const link = document.createElement("a");
+    link.href = `http://localhost:5050/jobseekers/${jobseeker.id}/resume`;
     link.download = jobseeker.resumeFileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(part => part[0]).join('').toUpperCase();
-  };
+const getInitials = (name?: string) => {
+  if (!name) return "NA";
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+};
+
 
   const uniqueLocations = useMemo(() => {
-    const locations = jobseekers.map(j => j.location);
+    const locations = jobseekers.map((j) => j.location);
     return [...new Set(locations)].sort();
   }, [jobseekers]);
 
@@ -78,17 +115,22 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-2xl">Jobseeker Profiles</CardTitle>
-              <p className="text-muted-foreground">Manage and review candidate applications</p>
+              <p className="text-muted-foreground">
+                Manage and review candidate applications
+              </p>
             </div>
             <div className="mt-4 sm:mt-0">
-              <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+              <Badge
+                variant="secondary"
+                className="bg-emerald-100 text-emerald-800"
+              >
                 <Users className="h-4 w-4 mr-2" />
                 {jobseekers.length} Active Profiles
               </Badge>
             </div>
           </div>
         </CardHeader>
-        
+
         {/* Search and Filter Section */}
         <CardContent className="p-0">
           <div className="p-4 border-b bg-slate-50">
@@ -116,8 +158,11 @@ export default function Dashboard() {
                     ))}
                   </SelectContent>
                 </Select>
-                
-                <Select value={experienceFilter} onValueChange={setExperienceFilter}>
+
+                <Select
+                  value={experienceFilter}
+                  onValueChange={setExperienceFilter}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="All Experience" />
                   </SelectTrigger>
@@ -130,8 +175,11 @@ export default function Dashboard() {
                     ))}
                   </SelectContent>
                 </Select>
-                
-                <Select value={locationFilter} onValueChange={setLocationFilter}>
+
+                <Select
+                  value={locationFilter}
+                  onValueChange={setLocationFilter}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
@@ -147,7 +195,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          
+
           {/* Profiles Table */}
           <div className="overflow-x-auto">
             <Table>
@@ -178,13 +226,18 @@ export default function Dashboard() {
                     </div>
                   </TableHead>
                   <TableHead className="font-medium">Status</TableHead>
-                  <TableHead className="font-medium text-right">Actions</TableHead>
+                  <TableHead className="font-medium text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredJobseekers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       No jobseekers found matching your criteria
                     </TableCell>
                   </TableRow>
@@ -203,13 +256,20 @@ export default function Dashboard() {
                             </span>
                           </div>
                           <div>
-                            <div className="font-medium">{jobseeker.fullName}</div>
-                            <div className="text-sm text-muted-foreground">{jobseeker.email}</div>
+                            <div className="font-medium">
+                              {jobseeker.fullName}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {jobseeker.email}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-800"
+                        >
                           {getSkillLabel(jobseeker.skill)}
                         </Badge>
                       </TableCell>
@@ -220,7 +280,10 @@ export default function Dashboard() {
                         {jobseeker.location}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="default" className="bg-emerald-100 text-emerald-800">
+                        <Badge
+                          variant="default"
+                          className="bg-emerald-100 text-emerald-800"
+                        >
                           <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
                           {jobseeker.status}
                         </Badge>
